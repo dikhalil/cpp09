@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/03 23:13:24 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/04 01:46:43 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/08 18:14:03 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,8 @@ class BitcoinExchange
         std::string _csvFile;
         std::map<std::string, float> _db;
         bool isValidDate(const std::string &line, const std::string &date);
-        bool isValidValue(const std::string &line, const std::string &sValue, float &valuef);
+        bool isValidValue(const std::string &line, const std::string &value, float &amount);
+        void processCsvFile();
     public:
         BitcoinExchange(const std::string &inputFile, const std::string &csvFile = "data.csv");
         ~BitcoinExchange();

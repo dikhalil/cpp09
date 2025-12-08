@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/03 23:14:44 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/04 02:46:04 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/08 18:25:50 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,52 @@ BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &other)
     return *this;
 }
 
+
+void BitcoinExchange::processCsvFile()
+{
+    std::ifstream file(_csvFile.c_str());
+    std::string line;
+    std::string date;
+    bool header;
+    size_t comma;
+   
+    header = false;
+    if (!file.is_open())
+        throw std::runtime_error("Error: Could not open file.");
+    if (file.peek() == std::ifstream::traits_type::eof())
+        throw std::runtime_error("CSV file is empty.");
+    while (std::getline(file, line))
+    {
+        std::string noSpaces;
+        
+        line = trim(line);
+        if (line.empty())
+            continue;
+        comma = line.find(',');
+        if (comma == std::string::npos || comma == 0 || comma == line.length() - 1)
+            throw std::runtime_error("Invalid CSV format.");
+        if (!header)
+        {
+            std::string left;
+            std::string right;
+            left = trim(line.substr(0, comma));
+            right = trim(line.substr(comma + 1));
+            if (left == "date" && right == "exchange_rate")
+            {
+                header = true;
+                continue;
+            }
+        }
+        if (!header)
+            throw std::runtime_error("CSV header missing.");
+        date = trim(line.substr(0, comma));
+        if (!isValidDate(line, date) 
+            || !isNumber(trim(line.substr(comma + 1))))
+            throw std::runtime_error("Invalid data in CSV file.");
+    }
+    file.close();
+}
+
 void BitcoinExchange::loadDataFromCSV()
 {
     std::ifstream file(_csvFile.c_str());
@@ -41,11 +87,12 @@ void BitcoinExchange::loadDataFromCSV()
     float value;
     size_t comma;
     
+    processCsvFile();
     if (!file.is_open())
         throw std::runtime_error("Error: Could not open CSV file");
     while (std::getline(file, line))
     {
-        if (line.empty() || line == "date,exchange_rate")
+        if (line.empty() || line == "date,exchange_rate" )
             continue;
         comma = line.find(',');
         if (comma == std::string::npos)
@@ -88,22 +135,22 @@ bool BitcoinExchange::isValidDate(const std::string &line, const std::string &da
     return true;
 }
 
-bool BitcoinExchange::isValidValue(const std::string &line, const std::string &sValue, float &value)
+bool BitcoinExchange::isValidValue(const std::string &line, const std::string &value, float &amount)
 {
-    if (!isNumber(sValue))
+    if (!isNumber(value))
     {
         std::cout << "Error: bad input => " << line << std::endl;
         return false;
     }
-    value = atof((trim(sValue).c_str()));
-    if (value < 0)
+    amount = atof((trim(value).c_str()));
+    if (amount < 0)
     {
         std::cout << "Error: not a positive number." << std::endl;
         return false;
     }
-    if (value > 1000)
+    if (amount > 1000)
     {
-        std::cout << "Error: too large a number." << std::endl;
+        std::cout << "Error: too large number." << std::endl;
         return false;
     }
     return true;
@@ -144,9 +191,16 @@ void BitcoinExchange::processInputFile()
             std::string right;
             left = trim(line.substr(0, pipe));
             right = trim(line.substr(pipe + 1));
-            header = true;
             if (left == "date" && right == "value")
+            {
+                header = true;
                 continue;
+            }
+        }
+        if (!header)
+        {
+            std::cout << "Error: header missing." << std::endl;
+            header = true;
         }
         date = trim(line.substr(0, pipe));
         if (!isValidDate(line, date) 
@@ -166,3 +220,4 @@ void BitcoinExchange::processInputFile()
     }
     file.close();
 }
+
