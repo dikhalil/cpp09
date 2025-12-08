@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 17:15:12 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/04 19:51:01 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/08 17:01:19 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,8 @@ PmergeMe &PmergeMe::operator=(const PmergeMe &other)
 {
     if (this != &other)
     {
-        _vectorData = other._vectorData;
-        _dequeData = other._dequeData;
+        _vec = other._vec;
+        _deq = other._deq;
     }
     return *this;
 }
@@ -47,21 +47,21 @@ void PmergeMe::parseData(const std::string &data)
 void PmergeMe::fillVector()
 {
     for (size_t i = 0; i < _tempData.size(); i++)
-        _vectorData.push_back(_tempData[i]);
+        _vec.push_back(_tempData[i]);
 }
 
 void PmergeMe::fillDeque()
 {
    for (size_t i = 0; i < _tempData.size(); i++)
-        _dequeData.push_back(_tempData[i]);
+        _deq.push_back(_tempData[i]);
 }
 
 void PmergeMe::printData() const
 {
-    for (size_t i = 0; i < _vectorData.size(); i++)
+    for (size_t i = 0; i < _vec.size(); i++)
     {
-        std::cout << _vectorData[i];
-        if (i != _vectorData.size() - 1)
+        std::cout << _vec[i];
+        if (i != _vec.size() - 1)
             std::cout << " ";
     }
     std::cout << std::endl;
@@ -77,22 +77,175 @@ void PmergeMe::endTimer()
     _end = clock();
 }
 
-long long PmergeMe::duration()
+double PmergeMe::duration()
 {
-    return static_cast<long long>(_end - _start) * 1000000 / CLOCKS_PER_SEC;
+    return static_cast<double>(_end - _start) / CLOCKS_PER_SEC * 1000000.0;
 }
 
 int PmergeMe::size() const
 {
-    return _vectorData.size();
+    return _vec.size();
+}
+
+
+size_t PmergeMe::binarySearchInsertPos(const std::vector<int> &v, int val) const
+{
+    size_t l = 0;
+    size_t r = v.size();
+    size_t m;
+    while (l < r)
+    {
+        m = l + (r - l) / 2;
+        if (val < v[m])
+            r = m;
+        else
+            l = m + 1;
+    }
+    return l;
+}
+
+size_t PmergeMe::binarySearchInsertPos(const std::deque<int> &d, int val) const
+{
+    size_t l = 0;
+    size_t r = d.size();
+    size_t m;
+    while (l < r)
+    {
+        m = l + (r - l) / 2;
+        if (val < d[m])
+            r = m;
+        else
+            l = m + 1;
+    }
+    return l;
+}
+
+std::vector<int> PmergeMe::jacobsthalSequence(size_t n) const
+{
+    std::vector<int> seq;
+    size_t t0;
+    size_t t1;
+    size_t tn;
+
+    t0 = 0;
+    t1 = 1;
+    seq.push_back(1);
+    while (t1 < n)
+    {
+        tn = t1 + 2 * t0;
+        seq.push_back(tn);
+        t0 = t1;
+        t1 = tn;
+    }
+    return seq;
+}
+
+static int min(int a, int b)
+{
+    return (a < b) ? a : b;
+}
+void PmergeMe::insertPendingVector(std::vector<int> &mainChain, const std::vector<int> &pending)
+{
+    std::vector<int> seq = jacobsthalSequence(pending.size());
+    int start, end;
+
+    for (size_t i = 0; i < seq.size(); ++i)
+    {
+        start = (i == 0) ? 0 : seq[i - 1];
+        end = min(seq[i], (int)pending.size());
+
+        for (int j = end - 1; j >= start; --j)
+        {
+            size_t pos = binarySearchInsertPos(mainChain, pending[j]);
+            if (pos == 0 || mainChain[pos - 1] != pending[j])
+                mainChain.insert(mainChain.begin() + pos, pending[j]);
+        }
+    }
+}
+
+void PmergeMe::merg_insertion(std::vector<int> &arr)
+{
+    if (arr.size() <= 1)
+        return;
+
+    std::vector<int> mainChain;
+    std::vector<int> pending;
+    
+    for (size_t i = 0; i + 1 < arr.size(); i += 2)
+    {
+        if (arr[i] < arr[i + 1])
+        {
+            mainChain.push_back(arr[i + 1]);
+            pending.push_back(arr[i]);
+        }
+        else
+        {
+            mainChain.push_back(arr[i]);
+            pending.push_back(arr[i + 1]);
+        }
+    }
+    if (arr.size() % 2 == 1)
+        pending.push_back(arr[arr.size() - 1]);
+    merg_insertion(mainChain);
+    insertPendingVector(mainChain, pending);
+
+    arr = mainChain;
+}
+
+
+void PmergeMe::insertPendingDeque(std::deque<int> &mainChain, const std::deque<int> &pending)
+{
+    std::vector<int> seq = jacobsthalSequence(pending.size());
+    int start, end;
+
+    for (size_t i = 0; i < seq.size(); ++i)
+    {
+        start = (i == 0) ? 0 : seq[i - 1];
+        end = min(seq[i], (int)pending.size());
+
+        for (int j = end - 1; j >= start; --j)
+        {
+            size_t pos = binarySearchInsertPos(mainChain, pending[j]);
+            if (pos == 0 || mainChain[pos - 1] != pending[j])
+                mainChain.insert(mainChain.begin() + pos, pending[j]);
+        }
+    }
+}
+
+void PmergeMe::merg_insertion(std::deque<int> &arr)
+{
+    if (arr.size() <= 1)
+        return;
+
+    std::deque<int> mainChain;
+    std::deque<int> pending;
+    
+    for (size_t i = 0; i + 1 < arr.size(); i += 2)
+    {
+        if (arr[i] < arr[i + 1])
+        {
+            mainChain.push_back(arr[i + 1]);
+            pending.push_back(arr[i]);
+        }
+        else
+        {
+            mainChain.push_back(arr[i]);
+            pending.push_back(arr[i + 1]);
+        }
+    }
+    if (arr.size() % 2 == 1)
+        pending.push_back(arr[arr.size() - 1]);
+    merg_insertion(mainChain);
+    insertPendingDeque(mainChain, pending);
+    arr = mainChain;
 }
 
 void PmergeMe::sortVector()
 {
-	mergeInsertionSort(_vectorData);
+    merg_insertion(_vec);
 }
 
 void PmergeMe::sortDeque()
 {
-	mergeInsertionSort(_dequeData);
+    merg_insertion(_deq);
 }
